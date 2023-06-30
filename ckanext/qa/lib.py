@@ -20,7 +20,7 @@ def compat_enqueue(name, fn, queue, args=None):
     try:
         # Try to use RQ
         from ckan.plugins.toolkit import enqueue_job
-        enqueue_job(fn, args=args, queue=queue)
+        enqueue_job(fn, args=args)
     except ImportError:
         # Fallback to Celery
         import uuid

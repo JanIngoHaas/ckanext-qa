@@ -4,7 +4,6 @@ import ckan.model as model
 import ckan.plugins as p
 from ckan.plugins import toolkit
 
-from ckanext.archiver.interfaces import IPipe
 from ckanext.qa.logic import action, auth
 from ckanext.qa.model import QA, aggregate_qa_for_a_dataset
 from ckanext.qa.helpers import qa_openness_stars_resource_html, qa_openness_stars_dataset_html
@@ -23,7 +22,6 @@ else:
 
 class QAPlugin(MixinPlugin, p.SingletonPlugin, toolkit.DefaultDatasetForm):
     p.implements(p.IConfigurer, inherit=True)
-    p.implements(IPipe, inherit=True)
     p.implements(IReport)
     p.implements(p.IActions)
     p.implements(p.IAuthFunctions)
@@ -34,20 +32,6 @@ class QAPlugin(MixinPlugin, p.SingletonPlugin, toolkit.DefaultDatasetForm):
 
     def update_config(self, config):
         toolkit.add_template_directory(config, '../templates')
-
-    # IPipe
-
-    def receive_data(self, operation, queue, **params):
-        '''Receive notification from ckan-archiver that a dataset has been
-        archived.'''
-        if not operation == 'package-archived':
-            return
-        dataset_id = params['package_id']
-
-        dataset = model.Package.get(dataset_id)
-        assert dataset
-
-        create_qa_update_package_task(dataset, queue=queue)
 
     # IReport
 
@@ -83,6 +67,14 @@ class QAPlugin(MixinPlugin, p.SingletonPlugin, toolkit.DefaultDatasetForm):
             }
 
     # IPackageController
+
+    def after_update(self, context, pkg_dict):
+        dataset_id = params['package_id']
+
+        dataset = model.Package.get(dataset_id)
+        assert dataset
+
+        create_qa_update_package_task(dataset, queue="default")
 
     def after_show(self, context, pkg_dict):
         # Insert the qa info into the package_dict so that it is
